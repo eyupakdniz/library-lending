@@ -1,0 +1,23 @@
+package com.eyup.library.exception;
+
+public enum ErrorCode {
+
+    RESOURCE_NOT_FOUND,
+
+    VALIDATION_ERROR,
+
+    BUSINESS_RULE_VIOLATION,
+
+    NO_AVAILABLE_COPIES,
+
+    DUPLICATE_ACTIVE_LOAN,
+
+    UNAUTHORIZED,
+
+    FORBIDDEN,
+
+    METHOD_NOT_ALLOWED,
+
+    INTERNAL_SERVER_ERROR
+
+}

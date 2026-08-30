@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: library-lending
+  datasource:
+    url: jdbc:h2:mem:library;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+server:
+  port: 8081
