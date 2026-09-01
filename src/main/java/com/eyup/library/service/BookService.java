@@ -3,9 +3,11 @@ package com.eyup.library.service;
 import com.eyup.library.domain.Book;
 import com.eyup.library.dto.CreateBookRequest;
 import com.eyup.library.entity.BookEntity;
+import com.eyup.library.exception.DuplicateIsbnException;
 import com.eyup.library.exception.ResourceNotFoundException;
 import com.eyup.library.mapper.BookMapper;
 import com.eyup.library.repository.BookRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,8 +28,15 @@ public class BookService {
 
     @Transactional
     public Book create(CreateBookRequest request) {
+        rejectIfIsbnExists(request.isbn());
+
         BookEntity entity = new BookEntity(UUID.randomUUID(), request.title(), request.isbn(), request.copies());
-        return bookMapper.toDomain(bookRepository.saveAndFlush(entity));
+
+        try {
+            return bookMapper.toDomain(bookRepository.saveAndFlush(entity));
+        } catch (DataIntegrityViolationException exception) {
+            throw new DuplicateIsbnException(duplicateIsbnMessage(request.isbn()));
+        }
     }
 
     @Transactional(readOnly = true)
@@ -40,9 +49,19 @@ public class BookService {
         return bookRepository.findAll(pageable).map(bookMapper::toDomain);
     }
 
+    private void rejectIfIsbnExists(String isbn) {
+        if (bookRepository.existsByIsbn(isbn)) {
+            throw new DuplicateIsbnException(duplicateIsbnMessage(isbn));
+        }
+    }
+
     private BookEntity findEntity(UUID id) {
         return bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found: " + id));
+    }
+
+    private String duplicateIsbnMessage(String isbn) {
+        return "Book already exists with same isbn. isbn=%s".formatted(isbn);
     }
 
 }

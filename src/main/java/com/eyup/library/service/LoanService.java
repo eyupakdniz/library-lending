@@ -33,9 +33,16 @@ public class LoanService {
         this.loanMapper = loanMapper;
     }
 
+    /**
+     * Lends one copy of a book to a member.
+     *
+     * <p>The book row is read under a pessimistic write lock, so the availability
+     * count and the insert that depends on it cannot interleave with a competing
+     * request for the last copy.</p>
+     */
     @Transactional
     public Loan create(CreateLoanRequest request) {
-        BookEntity book = findBookEntity(request.bookId());
+        BookEntity book = findBookEntityForUpdate(request.bookId());
 
         rejectIfNoAvailableCopies(book);
         rejectIfMemberAlreadyHasActiveLoan(request.memberId(), book.getId());
@@ -65,7 +72,7 @@ public class LoanService {
     }
 
     private void rejectIfNoAvailableCopies(BookEntity book) {
-        long copiesOnLoan = loanRepository.countByBookIdAndStatusNot(book.getId(), LoanStatus.RETURNED);
+        long copiesOnLoan = loanRepository.countByBookIdAndStatus(book.getId(), LoanStatus.ACTIVE);
         if (copiesOnLoan >= book.getCopies()) {
             throw new NoAvailableCopiesException(noAvailableCopiesMessage(book));
         }
@@ -84,8 +91,8 @@ public class LoanService {
         }
     }
 
-    private BookEntity findBookEntity(UUID id) {
-        return bookRepository.findById(id)
+    private BookEntity findBookEntityForUpdate(UUID id) {
+        return bookRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found: " + id));
     }
 

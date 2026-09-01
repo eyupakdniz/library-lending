@@ -10,6 +10,6 @@ public interface LoanRepository extends JpaRepository<LoanEntity, UUID> {
 
     boolean existsByMemberIdAndBookIdAndStatus(UUID memberId, UUID bookId, LoanStatus status);
 
-    long countByBookIdAndStatusNot(UUID bookId, LoanStatus status);
+    long countByBookIdAndStatus(UUID bookId, LoanStatus status);
 
 }

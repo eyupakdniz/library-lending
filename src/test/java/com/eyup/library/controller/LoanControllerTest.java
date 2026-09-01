@@ -32,6 +32,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,11 +60,10 @@ class LoanControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.id").value(LOAN_ID.toString()))
-                .andExpect(jsonPath("$.data.bookId").value(BOOK_ID.toString()))
-                .andExpect(jsonPath("$.data.memberId").value(MEMBER_ID.toString()))
-                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.id").value(LOAN_ID.toString()))
+                .andExpect(jsonPath("$.bookId").value(BOOK_ID.toString()))
+                .andExpect(jsonPath("$.memberId").value(MEMBER_ID.toString()))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         verify(loanService).create(argThat(argument ->
                 argument.bookId().equals(BOOK_ID)
@@ -83,7 +83,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.status").value(403));
 
         verifyNoInteractions(loanService);
     }
@@ -113,10 +115,12 @@ class LoanControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.validationErrors.bookId").exists())
-                .andExpect(jsonPath("$.validationErrors.memberId").exists())
-                .andExpect(jsonPath("$.validationErrors.dueDate").exists());
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.bookId").exists())
+                .andExpect(jsonPath("$.errors.memberId").exists())
+                .andExpect(jsonPath("$.errors.dueDate").exists());
 
         verifyNoInteractions(loanService);
     }
@@ -135,7 +139,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("NO_AVAILABLE_COPIES"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("NO_AVAILABLE_COPIES"))
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test
@@ -153,7 +159,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("DUPLICATE_ACTIVE_LOAN"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("DUPLICATE_ACTIVE_LOAN"))
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test
@@ -165,8 +173,8 @@ class LoanControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(patch("/api/v1/loans/{id}/return", LOAN_ID)
                         .with(user("librarian").roles("LIBRARIAN")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(LOAN_ID.toString()))
-                .andExpect(jsonPath("$.data.status").value("RETURNED"));
+                .andExpect(jsonPath("$.id").value(LOAN_ID.toString()))
+                .andExpect(jsonPath("$.status").value("RETURNED"));
 
         verify(loanService).returnLoan(LOAN_ID);
     }
@@ -177,7 +185,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(patch("/api/v1/loans/{id}/return", LOAN_ID)
                         .with(user("member").roles("MEMBER")))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.status").value(403));
 
         verifyNoInteractions(loanService);
     }
@@ -193,7 +203,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(patch("/api/v1/loans/{id}/return", LOAN_ID)
                         .with(user("librarian").roles("LIBRARIAN")))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("BUSINESS_RULE_VIOLATION"))
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test
@@ -205,9 +217,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(get("/api/v1/loans/{id}", LOAN_ID)
                         .with(user("member").roles("MEMBER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(LOAN_ID.toString()))
-                .andExpect(jsonPath("$.data.bookTitle").value("The Pragmatic Programmer"))
-                .andExpect(jsonPath("$.data.dueDate").value(DUE_DATE.toString()));
+                .andExpect(jsonPath("$.id").value(LOAN_ID.toString()))
+                .andExpect(jsonPath("$.bookTitle").value("The Pragmatic Programmer"))
+                .andExpect(jsonPath("$.dueDate").value(DUE_DATE.toString()));
     }
 
     @Test
@@ -220,7 +232,9 @@ class LoanControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(get("/api/v1/loans/{id}", LOAN_ID)
                         .with(user("member").roles("MEMBER")))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
@@ -238,11 +252,11 @@ class LoanControllerTest extends AbstractRestControllerTest {
                         .param("sort", "dueDate,desc")
                         .with(user("member").roles("MEMBER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content[0].id").value(LOAN_ID.toString()))
-                .andExpect(jsonPath("$.data.page").value(0))
-                .andExpect(jsonPath("$.data.size").value(5))
-                .andExpect(jsonPath("$.data.totalElements").value(1))
-                .andExpect(jsonPath("$.data.sort[0]").value("dueDate,desc"));
+                .andExpect(jsonPath("$.content[0].id").value(LOAN_ID.toString()))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.sort[0]").value("dueDate,desc"));
 
         verify(loanService).getAll(argThat(argument ->
                 argument.getPageNumber() == 0

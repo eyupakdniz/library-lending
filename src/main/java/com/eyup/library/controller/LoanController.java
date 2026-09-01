@@ -1,6 +1,5 @@
 package com.eyup.library.controller;
 
-import com.eyup.library.api.ApiResponse;
 import com.eyup.library.dto.CreateLoanRequest;
 import com.eyup.library.dto.LoanPageResponse;
 import com.eyup.library.dto.LoanResponse;
@@ -40,32 +39,31 @@ public class LoanController {
     @PostMapping
     @PreAuthorize("hasRole('LIBRARIAN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<LoanResponse> create(@Valid @RequestBody CreateLoanRequest request) {
-        return ApiResponse.success(loanMapper.toResponse(loanService.create(request)));
+    public LoanResponse create(@Valid @RequestBody CreateLoanRequest request) {
+        return loanMapper.toResponse(loanService.create(request));
     }
 
     @Operation(summary = "Return loan. ROLE_LIBRARIAN only.")
     @PatchMapping("/{id}/return")
     @PreAuthorize("hasRole('LIBRARIAN')")
-    public ApiResponse<LoanResponse> returnLoan(@PathVariable UUID id) {
-        return ApiResponse.success(loanMapper.toResponse(loanService.returnLoan(id)));
+    public LoanResponse returnLoan(@PathVariable UUID id) {
+        return loanMapper.toResponse(loanService.returnLoan(id));
     }
 
     @Operation(summary = "Get loan by id. Any authenticated user is allowed.")
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<LoanResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(loanMapper.toResponse(loanService.getById(id)));
+    public LoanResponse getById(@PathVariable UUID id) {
+        return loanMapper.toResponse(loanService.getById(id));
     }
 
     @Operation(summary = "List loans. Any authenticated user is allowed.")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<LoanPageResponse> getAll(
+    public LoanPageResponse getAll(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ApiResponse.success(
-                LoanPageResponse.from(loanService.getAll(pageable).map(loanMapper::toResponse)));
+        return LoanPageResponse.from(loanService.getAll(pageable).map(loanMapper::toResponse));
     }
 
 }

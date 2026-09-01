@@ -2,13 +2,15 @@ spring:
   application:
     name: library-lending
   datasource:
-    url: jdbc:h2:mem:library;DB_CLOSE_DELAY=-1
-    username: sa
-    password: ""
-    driver-class-name: org.h2.Driver
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/library}
+    username: ${DATABASE_USERNAME:library}
+    password: ${DATABASE_PASSWORD:library}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      # Flyway owns the schema; Hibernate only checks the mapping. Never update/create.
+      ddl-auto: validate
     open-in-view: false
+  flyway:
+    enabled: true
 server:
   port: 8081

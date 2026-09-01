@@ -62,8 +62,8 @@ class LoanServiceTest extends AbstractBaseServiceTest {
         // Given
         CreateLoanRequest request = createLoanRequest();
 
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(bookEntity()));
-        when(loanRepository.countByBookIdAndStatusNot(BOOK_ID, LoanStatus.RETURNED)).thenReturn(1L);
+        when(bookRepository.findByIdForUpdate(BOOK_ID)).thenReturn(Optional.of(bookEntity()));
+        when(loanRepository.countByBookIdAndStatus(BOOK_ID, LoanStatus.ACTIVE)).thenReturn(1L);
         when(loanRepository.existsByMemberIdAndBookIdAndStatus(MEMBER_ID, BOOK_ID, LoanStatus.ACTIVE))
                 .thenReturn(false);
         when(loanRepository.saveAndFlush(any(LoanEntity.class)))
@@ -91,7 +91,7 @@ class LoanServiceTest extends AbstractBaseServiceTest {
         // Given
         CreateLoanRequest request = createLoanRequest();
 
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.empty());
+        when(bookRepository.findByIdForUpdate(BOOK_ID)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> loanService.create(request))
@@ -106,8 +106,8 @@ class LoanServiceTest extends AbstractBaseServiceTest {
         // Given
         CreateLoanRequest request = createLoanRequest();
 
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(bookEntity()));
-        when(loanRepository.countByBookIdAndStatusNot(BOOK_ID, LoanStatus.RETURNED)).thenReturn(2L);
+        when(bookRepository.findByIdForUpdate(BOOK_ID)).thenReturn(Optional.of(bookEntity()));
+        when(loanRepository.countByBookIdAndStatus(BOOK_ID, LoanStatus.ACTIVE)).thenReturn(2L);
 
         // When & Then
         assertThatThrownBy(() -> loanService.create(request))
@@ -122,8 +122,8 @@ class LoanServiceTest extends AbstractBaseServiceTest {
         // Given
         CreateLoanRequest request = createLoanRequest();
 
-        when(bookRepository.findById(BOOK_ID)).thenReturn(Optional.of(bookEntity()));
-        when(loanRepository.countByBookIdAndStatusNot(BOOK_ID, LoanStatus.RETURNED)).thenReturn(1L);
+        when(bookRepository.findByIdForUpdate(BOOK_ID)).thenReturn(Optional.of(bookEntity()));
+        when(loanRepository.countByBookIdAndStatus(BOOK_ID, LoanStatus.ACTIVE)).thenReturn(1L);
         when(loanRepository.existsByMemberIdAndBookIdAndStatus(MEMBER_ID, BOOK_ID, LoanStatus.ACTIVE))
                 .thenReturn(true);
 
