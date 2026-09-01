@@ -12,6 +12,8 @@ public enum ErrorCode {
 
     DUPLICATE_ACTIVE_LOAN,
 
+    DUPLICATE_ISBN,
+
     UNAUTHORIZED,
 
     FORBIDDEN,

@@ -3,6 +3,7 @@ package com.eyup.library.controller;
 import com.eyup.library.base.AbstractRestControllerTest;
 import com.eyup.library.domain.Book;
 import com.eyup.library.dto.CreateBookRequest;
+import com.eyup.library.exception.DuplicateIsbnException;
 import com.eyup.library.exception.ResourceNotFoundException;
 import com.eyup.library.service.BookService;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,10 +46,9 @@ class BookControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.id").value(BOOK_ID.toString()))
-                .andExpect(jsonPath("$.data.title").value("The Pragmatic Programmer"))
-                .andExpect(jsonPath("$.data.copies").value(2));
+                .andExpect(jsonPath("$.id").value(BOOK_ID.toString()))
+                .andExpect(jsonPath("$.title").value("The Pragmatic Programmer"))
+                .andExpect(jsonPath("$.copies").value(2));
 
         verify(bookService).create(argThat(argument ->
                 argument.title().equals("The Pragmatic Programmer")
@@ -67,7 +68,9 @@ class BookControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.status").value(403));
 
         verifyNoInteractions(bookService);
     }
@@ -83,12 +86,33 @@ class BookControllerTest extends AbstractRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.validationErrors.title").exists())
-                .andExpect(jsonPath("$.validationErrors.isbn").exists())
-                .andExpect(jsonPath("$.validationErrors.copies").exists());
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.title").exists())
+                .andExpect(jsonPath("$.errors.isbn").exists())
+                .andExpect(jsonPath("$.errors.copies").exists());
 
         verifyNoInteractions(bookService);
+    }
+
+    @Test
+    void shouldReturnConflictWhenIsbnAlreadyExists() throws Exception {
+        // Given
+        CreateBookRequest request = createBookRequest();
+
+        when(bookService.create(any(CreateBookRequest.class)))
+                .thenThrow(new DuplicateIsbnException("Book already exists with same isbn. isbn=9780135957059"));
+
+        // When & Then
+        mockMvc.perform(post("/api/v1/books")
+                        .with(user("librarian").roles("LIBRARIAN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("DUPLICATE_ISBN"))
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test
@@ -100,8 +124,8 @@ class BookControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(get("/api/v1/books/{id}", BOOK_ID)
                         .with(user("member").roles("MEMBER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(BOOK_ID.toString()))
-                .andExpect(jsonPath("$.data.isbn").value("9780135957059"));
+                .andExpect(jsonPath("$.id").value(BOOK_ID.toString()))
+                .andExpect(jsonPath("$.isbn").value("9780135957059"));
     }
 
     @Test
@@ -114,7 +138,9 @@ class BookControllerTest extends AbstractRestControllerTest {
         mockMvc.perform(get("/api/v1/books/{id}", BOOK_ID)
                         .with(user("member").roles("MEMBER")))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"))
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     private CreateBookRequest createBookRequest() {

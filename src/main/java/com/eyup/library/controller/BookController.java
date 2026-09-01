@@ -1,6 +1,5 @@
 package com.eyup.library.controller;
 
-import com.eyup.library.api.ApiResponse;
 import com.eyup.library.dto.BookPageResponse;
 import com.eyup.library.dto.BookResponse;
 import com.eyup.library.dto.CreateBookRequest;
@@ -39,25 +38,24 @@ public class BookController {
     @PostMapping
     @PreAuthorize("hasRole('LIBRARIAN')")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<BookResponse> create(@Valid @RequestBody CreateBookRequest request) {
-        return ApiResponse.success(bookMapper.toResponse(bookService.create(request)));
+    public BookResponse create(@Valid @RequestBody CreateBookRequest request) {
+        return bookMapper.toResponse(bookService.create(request));
     }
 
     @Operation(summary = "Get book by id. Any authenticated user is allowed.")
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<BookResponse> getById(@PathVariable UUID id) {
-        return ApiResponse.success(bookMapper.toResponse(bookService.getById(id)));
+    public BookResponse getById(@PathVariable UUID id) {
+        return bookMapper.toResponse(bookService.getById(id));
     }
 
     @Operation(summary = "List books. Any authenticated user is allowed.")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ApiResponse<BookPageResponse> getAll(
+    public BookPageResponse getAll(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ApiResponse.success(
-                BookPageResponse.from(bookService.getAll(pageable).map(bookMapper::toResponse)));
+        return BookPageResponse.from(bookService.getAll(pageable).map(bookMapper::toResponse));
     }
 
 }

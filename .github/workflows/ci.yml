@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # verify runs the full suite, including Testcontainers-backed @DataJpaTest
+      # slices — ubuntu-latest runners have Docker available.
+      - name: Build and test
+        run: ./mvnw --batch-mode --no-transfer-progress verify

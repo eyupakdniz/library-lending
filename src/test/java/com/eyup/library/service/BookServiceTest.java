@@ -4,12 +4,14 @@ import com.eyup.library.base.AbstractBaseServiceTest;
 import com.eyup.library.domain.Book;
 import com.eyup.library.dto.CreateBookRequest;
 import com.eyup.library.entity.BookEntity;
+import com.eyup.library.exception.DuplicateIsbnException;
 import com.eyup.library.exception.ResourceNotFoundException;
 import com.eyup.library.mapper.BookMapper;
 import com.eyup.library.repository.BookRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +51,7 @@ class BookServiceTest extends AbstractBaseServiceTest {
         // Given
         CreateBookRequest request = createBookRequest();
 
+        when(bookRepository.existsByIsbn("9780135957059")).thenReturn(false);
         when(bookRepository.saveAndFlush(any(BookEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -64,6 +68,36 @@ class BookServiceTest extends AbstractBaseServiceTest {
                         && argument.getIsbn().equals("9780135957059")
                         && argument.getCopies() == 2
         ));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCreatingBookWithDuplicateIsbn() {
+        // Given
+        CreateBookRequest request = createBookRequest();
+
+        when(bookRepository.existsByIsbn("9780135957059")).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> bookService.create(request))
+                .isInstanceOf(DuplicateIsbnException.class)
+                .hasMessageContaining("Book already exists with same isbn");
+
+        verify(bookRepository, never()).saveAndFlush(any(BookEntity.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIsbnConstraintIsViolatedOnInsert() {
+        // Given
+        CreateBookRequest request = createBookRequest();
+
+        when(bookRepository.existsByIsbn("9780135957059")).thenReturn(false);
+        when(bookRepository.saveAndFlush(any(BookEntity.class)))
+                .thenThrow(new DataIntegrityViolationException("uk_books_isbn"));
+
+        // When & Then
+        assertThatThrownBy(() -> bookService.create(request))
+                .isInstanceOf(DuplicateIsbnException.class)
+                .hasMessageContaining("Book already exists with same isbn");
     }
 
     @Test
